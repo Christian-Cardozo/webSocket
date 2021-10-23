@@ -1,0 +1,35 @@
+{{> navbar}}
+
+<div class="container">
+    <hr>
+</div>
+
+<div class="container">
+    <a class="btn btn-primary btn-lg" href="/producto/nuevo" role="button" >Agregar producto</a>  
+</div>
+
+<div class="container">
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">#</th>
+                <th scope="col">Title</th>
+                <th scope="col">Price</th>
+                <th scope="col">thumbnail</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{#if listExists}}
+            {{#each products}}
+            <tr>
+                <th scope="row">{{this.id}}</th>
+                <td>{{this.title}}</td>
+                <td>${{this.price}}</td>
+                <td><img src={{this.thumbnail}} style="height: 50px; width: 50px;"></td>
+            </tr>
+            {{/each}}
+            {{/if}}
+        </tbody>
+    </table>
+</div>
+

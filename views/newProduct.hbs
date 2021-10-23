@@ -1,0 +1,19 @@
+{{> navbar}}
+<div class="container">
+
+    <form action="/productos" method="post">
+        <div class="mb-3">
+            <label for="title" class="form-label">Titulo</label>
+            <input type="text" name="title" class="form-control" id="title" aria-describedby="title">            
+        </div>
+        <div class="mb-3">
+            <label for="price" class="form-label">Precio</label>
+            <input type="text" name="price" class="form-control" id="price">
+        </div>
+        <div class="mb-3">
+            <label for="thumbnail" class="form-label">Imagen</label>
+            <input type="text" name="thumbnail" class="form-control" id="thumbnail">
+        </div>
+        <button type="submit" class="btn btn-primary">Guardar</button>
+    </form>
+</div>
