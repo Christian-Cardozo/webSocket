@@ -1,49 +1,101 @@
 const express = require('express');
 const app = express();
+const http = require('http');
+const server = http.createServer(app);
+const { Server } = require("socket.io");
+const io = new Server(server);
+const fs = require('fs').promises
+
+const handlebars = require('express-handlebars');
+const got = require('got');
 const port = 3000;
 
-var got = require('got');
 app.use(express.json()); // for parsing application/json
 app.use(express.urlencoded({ extended: true }));
+app.use(express.static('public'))
+app.use(express.static(__dirname + '/assets/'));
 
-//Loads the handlebars module
-const handlebars = require('express-handlebars');
-
-//Sets our app to use the handlebars engine
 app.set('view engine', 'hbs');
 
-//Sets handlebars configurations (we will go through them later on)
 app.engine('hbs', handlebars({
     layoutsDir: __dirname + '/views/layouts',
     extname: 'hbs',
     partialsDir: __dirname + '/views/partials/'
 }));
 
-app.use(express.static('public'))
-app.use(express.static(__dirname + '/assets/'));
+let productos = []
+let mensajes = []
 
-app.get('/', (req, res) => {
-    //Serves the body of the page aka "main.handlebars" to the container //aka "index.handlebars"
+async function writeFile (){
+    try{
+        const file = "messages.json"
+        await fs.writeFile(file, JSON.stringify(mensajes))
+    }   
+    catch(error){
+        console.log(error);
+    }    
+}
+
+async function readFile (){
+    try{
+        const file = 'messages.json'
+        const data = await fs.readFile(file)
+        return JSON.parse(data)
+    }   
+    catch(error){
+        console.log("ReadFile error: " + error);
+    }    
+}
+
+io.on('connection', (socket) => {
+    console.log('a user connected');
+
+    socket.on('disconnect', () => {
+        console.log('user disconnected');
+    });
+    
+    socket.on('new-product', async (data) =>{
+        
+        console.log(data)
+
+        const { body } = await got.post('http://127.0.0.1:8080/api/productos', {
+            json: data, 
+            responseType: 'json'
+        })
+
+        data.id = Math.max.apply(Math, productos.map(item => { return item.id; })) + 1
+
+        productos.push(data);
+        io.sockets.emit('products', productos)
+    })
+
+    socket.on('new-message', async (data) =>{
+                
+        mensajes.push(data);
+        await writeFile()
+        io.sockets.emit('messages', mensajes)
+    })
+});
+
+app.get('/', (req, res) => {    
     res.render('main', { layout: 'index' });
 });
 
 app.get('/productos', async (req, res) => {
 
     try {
-        const { body } = await got.get('http://127.0.0.1:8080/api/productos')
-
-        //Serves the body of the page aka "main.handlebars" to the container //aka "index.handlebars"
-        res.render('products', { layout: 'index', products: JSON.parse(body), listExists: body });
+        const { body } = await got.get('http://127.0.0.1:8080/api/productos');
+        productos = JSON.parse(body);
+        
+        mensajes = await readFile()
+                 
+        
+        console.log(mensajes);
+        res.render('products', { layout: 'index', products: productos, messages: mensajes, listExists: body, messageExists: mensajes.length>0});
     }
     catch (error) {
         res.render('error', { layout: 'index', error })
     }
-});
-
-app.get('/producto/nuevo', async (req, res) => {
-
-    //Serves the body of the page aka "main.handlebars" to the container //aka "index.handlebars"
-    res.render('newProduct', { layout: 'index' });
 });
 
 app.get('/error', (req, res) => {
@@ -68,4 +120,4 @@ app.post('/productos', async (req, res) => {
     }
 });
 
-app.listen(port, () => console.log(`WebServer ejecutandose en el puerto ${port}`));
+server.listen(port, () => console.log(`WebServer ejecutandose en el puerto ${port}`));
